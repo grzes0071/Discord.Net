@@ -1,4 +1,4 @@
-﻿using Discord.API.Rpc;
+using Discord.API.Rpc;
 using Discord.Logging;
 using Discord.Net.Converters;
 using Discord.Rest;

@@ -73,7 +73,7 @@ namespace Discord.WebSocket
         internal int? HandlerTimeout { get; private set; }
         internal bool? ExclusiveBulkDelete { get; private set; }
 
-        internal new DiscordSocketApiClient ApiClient => base.ApiClient as DiscordSocketApiClient;
+        public new DiscordSocketApiClient ApiClient => base.ApiClient as DiscordSocketApiClient;
         /// <inheritdoc />
         public override IReadOnlyCollection<SocketGuild> Guilds => State.Guilds;
         /// <inheritdoc />
@@ -1827,7 +1827,36 @@ namespace Discord.WebSocket
                             case "WEBHOOKS_UPDATE":
                                 await _gatewayLogger.DebugAsync("Ignored Dispatch (WEBHOOKS_UPDATE)").ConfigureAwait(false);
                                 break;
-
+                            case "INTERACTION_CREATE":
+                                {
+                                    await _gatewayLogger.DebugAsync("Received Dispatch (INTERACTION_CREATE)").ConfigureAwait(false);
+                                    var data = (payload as JToken).ToObject<API.MessageInteraction>(_serializer);
+                                    ITextChannel channel;
+                                    ulong user;
+                                    bool guild = data.GuildId.IsSpecified;
+                                    
+                                    if (data.ChannelId.IsSpecified)
+                                    {
+                                        channel = State.GetChannel(data.ChannelId.Value) as ITextChannel;
+                                        await _gatewayLogger.DebugAsync("Received Interaction on Channel").ConfigureAwait(false);
+                                    }
+                                    else if (data.User.IsSpecified)
+                                    {
+                                        channel = this.GetUser(data.User.Value.Id).CreateDMChannelAsync() as ITextChannel;
+                                        await _gatewayLogger.DebugAsync("Received Interaction on DM").ConfigureAwait(false);
+                                    }
+                                    else
+                                        return;
+                                    if (data.Member.IsSpecified)
+                                        user = data.Member.Value.User.Id;
+                                    else if (data.User.IsSpecified)
+                                        user = data.User.Value.Id;
+                                    else
+                                        return;
+                                    if (MessageComponent.Callbacks.TryGetValue($"{data.Message.Value.Id}.{data.Data.Value.CustomId}", out var callback))
+                                        callback(channel, await channel.GetMessageAsync(data.Message.Value.Id), await this.Rest.GetUserAsync(user), guild, data.Id, data.Token);
+                                }
+                                break;
                             //Others
                             default:
                                 await _gatewayLogger.WarningAsync($"Unknown Dispatch ({type})").ConfigureAwait(false);
