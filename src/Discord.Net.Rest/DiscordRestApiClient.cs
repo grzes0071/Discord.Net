@@ -499,7 +499,7 @@ namespace Discord.API
 
             var ids = new BucketIds(channelId: channelId);
             var msg = await SendJsonAsync<Message>("POST", () => $"channels/{channelId}/messages", args, ids, clientBucket: ClientBucketType.SendEdit, options: options).ConfigureAwait(false);
-            if (args.Components.IsSpecified)
+            if (args.Components.IsSpecified && args.Components.Value != null)
             {
                 foreach (var item in args.Components.Value)
                 {

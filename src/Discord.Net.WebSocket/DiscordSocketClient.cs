@@ -1896,6 +1896,8 @@ namespace Discord.WebSocket
                                     {
                                         if (MessageComponent.Commands.TryGetValue($"{data.Data.Value.Name}", out var callback))
                                             callback(channel, await this.Rest.GetUserAsync(user), guild, data.Id, data.Token, data.Data.Value);
+                                        else if(MessageComponent.DefaultCommandHandler != null)
+                                            MessageComponent.DefaultCommandHandler(channel, await this.Rest.GetUserAsync(user), guild, data.Id, data.Token, data.Data.Value);
                                         else
                                         {
                                             string tor = "";

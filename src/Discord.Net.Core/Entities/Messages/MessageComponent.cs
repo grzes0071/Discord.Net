@@ -10,6 +10,7 @@ namespace Discord
     [JsonObject(MemberSerialization = MemberSerialization.OptIn)]
     public class MessageComponent
     {
+        public static Action<ITextChannel, IUser, bool, ulong, string, object> DefaultCommandHandler = null;
         public static readonly Dictionary<string, Action<ITextChannel, IMessage, IUser, bool, ulong, string>> Callbacks = new Dictionary<string, Action<ITextChannel, IMessage, IUser, bool, ulong, string>>();
         public static readonly Dictionary<string, Action<ITextChannel, IUser, bool, ulong, string, object>> Commands = new Dictionary<string, Action<ITextChannel, IUser, bool, ulong, string, object>>();
         [JsonProperty("type")]
