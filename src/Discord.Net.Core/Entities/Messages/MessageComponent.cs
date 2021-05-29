@@ -11,7 +11,7 @@ namespace Discord
     public class MessageComponent
     {
         public static readonly Dictionary<string, Action<ITextChannel, IMessage, IUser, bool, ulong, string>> Callbacks = new Dictionary<string, Action<ITextChannel, IMessage, IUser, bool, ulong, string>>();
-
+        public static readonly Dictionary<string, Action<ITextChannel, IUser, bool, ulong, string, object>> Commands = new Dictionary<string, Action<ITextChannel, IUser, bool, ulong, string, object>>();
         [JsonProperty("type")]
         public int Type { get; }
 
@@ -68,6 +68,21 @@ namespace Discord
             {
                 Components = components
             };
+        }
+
+        public static async Task SendResponse(ulong id, string token, string content, bool privateMsg, bool edit)
+        {
+/*            await discordClient.ApiClient.SendJsonAsync("POST",
+            () => $"interactions/{interactionId}/{interactionToken}/callback",
+            new
+            {
+                type = 7,
+                data = new
+                {
+                    content = $"Edited: Hi {user.Mention} | {DateTime.Now:HH:mm:ss}"
+                }
+            },
+            new Discord.API.DiscordRestApiClient.BucketIds(channelId: channel.Id), Discord.Net.Queue.ClientBucketType.SendEdit);*/
         }
 
         public enum ButtonType

@@ -1853,8 +1853,100 @@ namespace Discord.WebSocket
                                         user = data.User.Value.Id;
                                     else
                                         return;
-                                    if (MessageComponent.Callbacks.TryGetValue($"{data.Message.Value.Id}.{data.Data.Value.CustomId}", out var callback))
-                                        callback(channel, await channel.GetMessageAsync(data.Message.Value.Id), await this.Rest.GetUserAsync(user), guild, data.Id, data.Token);
+                                    if (data.Type == MessageInteractionType.MESSAGE_COMPONENT)
+                                    {
+                                        if (data.Data.Value.CustomId.StartsWith("@") && MessageComponent.Callbacks.TryGetValue($"{data.Data.Value.CustomId}", out var callback))
+                                            callback(channel, await channel.GetMessageAsync(data.Message.Value.Id), await this.Rest.GetUserAsync(user), guild, data.Id, data.Token);
+                                        else if (MessageComponent.Callbacks.TryGetValue($"{data.Message.Value.Id}.{data.Data.Value.CustomId}", out callback))
+                                            callback(channel, await channel.GetMessageAsync(data.Message.Value.Id), await this.Rest.GetUserAsync(user), guild, data.Id, data.Token);
+                                        else
+                                        {
+                                            await this.ApiClient.SendJsonAsync("POST",
+                                            () => $"interactions/{data.Id}/{data.Token}/callback",
+                                            new
+                                            {
+                                                type = 4,
+                                                data = new
+                                                {
+                                                    content = $"This button used to do something, but due to an error or bot restart it no longer does | Failed to find button handler | Button custom Id (GlobalId: {data.Data.Value.CustomId}|PrivateId: {data.Message.Value.Id}.{data.Data.Value.CustomId})",
+                                                    flags = 64,
+                                                    /*components = new[]
+                                                    {
+                                                        new
+                                                        {
+                                                            type = 1,
+                                                            components = new[]
+                                                            {
+                                                                new
+                                                                {
+                                                                    type = 2,
+                                                                    label = "Test",
+                                                                    style = 1,
+                                                                    custom_id = "test__"
+                                                                }
+                                                            }
+                                                        }
+                                                    }*/
+                                                }
+                                            },
+                                            new Discord.API.DiscordRestApiClient.BucketIds(channelId: channel.Id), Discord.Net.Queue.ClientBucketType.SendEdit);
+                                        }
+                                    }
+                                    else if (data.Type == MessageInteractionType.APPLICATION_COMMAND)
+                                    {
+                                        if (MessageComponent.Commands.TryGetValue($"{data.Data.Value.Name}", out var callback))
+                                            callback(channel, await this.Rest.GetUserAsync(user), guild, data.Id, data.Token, data.Data.Value);
+                                        else
+                                        {
+                                            string tor = "";
+                                            foreach (var item in data.Data.Value.Options.Value)
+                                            {
+                                                if (item.Type == ApplicationCommandOptionType.SUB_COMMAND_GROUP)
+                                                {
+                                                    if (item.Options.IsSpecified)
+                                                    {
+                                                        foreach (var item2 in item.Options.Value)
+                                                        {
+                                                            if (item2.Type == ApplicationCommandOptionType.SUB_COMMAND)
+                                                            {
+                                                                tor += $" {item2.Name}: ({item2.Type})";
+                                                                if (item2.Options.IsSpecified)
+                                                                {
+                                                                    foreach (var item3 in item2.Options.Value)
+                                                                        tor += $" {item3.Name}: ({item3.Type}){JsonConvert.SerializeObject(item3.Value.Value)}";
+                                                                }
+                                                            }
+                                                            else
+                                                                tor += $" {item2.Name}: ({item2.Type}){JsonConvert.SerializeObject(item2.Value.Value)}";
+                                                        }
+                                                    }
+                                                }
+                                                else if (item.Type == ApplicationCommandOptionType.SUB_COMMAND)
+                                                {
+                                                    tor += $" {item.Name}: ({item.Type})";
+                                                    if (item.Options.IsSpecified)
+                                                    {
+                                                        foreach (var item2 in item.Options.Value)
+                                                            tor += $" {item2.Name}: ({item2.Type}){JsonConvert.SerializeObject(item2.Value.Value)}";
+                                                    }
+                                                }
+                                                else
+                                                    tor += $" {item.Name}: ({item.Type}){JsonConvert.SerializeObject(item.Value.Value)}";
+                                            }
+                                            await this.ApiClient.SendJsonAsync("POST",
+                                            () => $"interactions/{data.Id}/{data.Token}/callback",
+                                            new
+                                            {
+                                                type = 4,
+                                                data = new
+                                                {
+                                                    content = $"Unknown command ({data.Data.Value.Name}{tor}) | Failed to find command handler",
+                                                    flags = 64
+                                                }
+                                            },
+                                            new Discord.API.DiscordRestApiClient.BucketIds(channelId: channel.Id), Discord.Net.Queue.ClientBucketType.SendEdit);
+                                        }
+                                    }
                                 }
                                 break;
                             //Others
